@@ -110,16 +110,20 @@ frontend/
 
 ## With more time:
 
-- Tests: Ill be honest, I haven't implemented TTD in my workflow. I know its unwanted practice and I am slowly picking up the process of writting tests.
+- Tests: Ill be honest, I haven't implemented TDD in my workflow. I know its unwanted practice and I am slowly picking up the process of writting tests.
 
 - Queue jobs for email notifications witch dispatch: 
+    ```
     Mail::to($booking->client_email)->send(new BookingConfirmed($booking));
+    ```
     build nice minimal email template, if phone number present, send SMS.
 
 - Booking cancellation/rescheduling also user auth is required for the process:
-Cancell the booking with  Route::delete('/api/bookings/{id}', [BookingController::class, 'cancel']); with cancelled_at timestamp to keept the records of the transaction.
-
-Reshedule with Update method.
+Cancell the booking with with cancelled_at timestamp to keept the records of the transaction.
+```
+Route::delete('/api/bookings/{id}', [BookingController::class, 'cancel']); 
+```
+- Reshedule with Update method.
 
 - Multi-staff support, adding staff option before picking up the service: if staff is available > show available slots.
 
