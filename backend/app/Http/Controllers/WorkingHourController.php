@@ -30,8 +30,8 @@ class WorkingHourController extends Controller
     public function update(Request $request, WorkingHour $workingHour)
     {
         $validated = $request->validate([
-            'start_time' => 'sometimes|date_format:H:i',
-            'end_time' => 'sometimes|date_format:H:i|after:start_time',
+            'start_time' => 'sometimes|date_format:H:i:s',
+            'end_time' => 'sometimes|date_format:H:i:s|after:start_time',
             'is_active' => 'sometimes|boolean'
         ]);
 
