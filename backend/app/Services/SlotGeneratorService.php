@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Service;
 use App\Models\WorkingHour;
 use App\Models\Booking;
 use Carbon\Carbon;
@@ -12,14 +13,14 @@ class SlotGeneratorService
     {
         $service = \App\Models\Service::findOrFail($serviceId);
         $dayOfWeek = Carbon::parse($date)->dayOfWeek;
-        
+
         // Check if working day
         $workingHour = WorkingHour::getForDay($dayOfWeek);
-        
+
         if (!$workingHour) {
             return [];
         }
-        
+
         // Generate all possible slots
         $allSlots = $this->generateSlots(
             $date,
@@ -27,17 +28,17 @@ class SlotGeneratorService
             $workingHour->end_time,
             $service->duration_minutes
         );
-        
+
         // Filter out past slots if today
         if (Carbon::parse($date)->isToday()) {
             $allSlots = $this->filterPastSlots($allSlots);
         }
-        
+
         // Get existing bookings
         $bookings = Booking::where('booking_date', $date)
             ->where('status', '!=', 'cancelled')
             ->get();
-        
+
         // Filter available slots
         return $this->filterAvailableSlots($allSlots, $bookings);
     }
@@ -47,26 +48,26 @@ class SlotGeneratorService
         $slots = [];
         $current = Carbon::parse("$date $startTime");
         $end = Carbon::parse("$date $endTime");
-        
+
         while ($current->copy()->addMinutes($durationMinutes)->lte($end)) {
             $slotStart = $current->format('H:i');
             $slotEnd = $current->copy()->addMinutes($durationMinutes)->format('H:i');
-            
+
             $slots[] = [
                 'start_time' => $slotStart,
                 'end_time' => $slotEnd,
             ];
-            
+
             $current->addMinutes($durationMinutes);
         }
-        
+
         return $slots;
     }
 
     private function filterPastSlots(array $slots): array
     {
         $now = Carbon::now();
-        
+
         return array_filter($slots, function ($slot) use ($now) {
             $slotTime = Carbon::parse($slot['start_time']);
             return $slotTime->isAfter($now);
