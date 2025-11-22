@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
-use App\Models\Service;
 use App\Services\SlotGeneratorService;
+use App\Services\BookingService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 
 class BookingController extends Controller
 {
     protected $slotGenerator;
+    protected $bookingService;
 
-    public function __construct(SlotGeneratorService $slotGenerator)
+    public function __construct(SlotGeneratorService $slotGenerator, BookingService $bookingService)
     {
         $this->slotGenerator = $slotGenerator;
+        $this->bookingService = $bookingService;
     }
 
     public function getAvailableSlots(Request $request)
@@ -43,35 +43,24 @@ class BookingController extends Controller
             'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
-        // prevent double booking
         try {
-            $booking = DB::transaction(function () use ($validated) {
-                // Lock and check for conflicts
-                $conflict = Booking::where('booking_date', $validated['booking_date'])
-                    ->where('status', '!=', 'cancelled')
-                    ->where(function ($query) use ($validated) {
-                        $query->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
-                            ->orWhereBetween('end_time', [$validated['start_time'], $validated['end_time']])
-                            ->orWhere(function ($q) use ($validated) {
-                                $q->where('start_time', '<=', $validated['start_time'])
-                                  ->where('end_time', '>=', $validated['end_time']);
-                            });
-                    })
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($conflict) {
-                    throw new \Exception('This time slot is already booked.');
-                }
-
-                return Booking::create($validated);
-            });
+            $booking = $this->bookingService->createBooking($validated);
 
             return response()->json([
                 'message' => 'Booking created successfully',
                 'booking' => $booking->load('service')
             ], 201);
+        } catch (QueryException $e) {
+            // Handle database constraint violations (e.g., unique constraint on booking_date + start_time)
+            if ($e->getCode() === '23000') {
+                return response()->json([
+                    'message' => 'This time slot is already booked. Please select another time.'
+                ], 422);
+            }
 
+            return response()->json([
+                'message' => 'An error occurred while creating the booking. Please try again.'
+            ], 500);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => $e->getMessage()
@@ -79,12 +68,19 @@ class BookingController extends Controller
         }
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $bookings = Booking::with('service')
-            ->orderBy('booking_date')
-            ->orderBy('start_time')
-            ->get();
+        // If date is provided, get bookings for that specific date
+        if ($request->has('date')) {
+            $request->validate([
+                'date' => 'required|date'
+            ]);
+
+            $bookings = $this->bookingService->getBookingsForDate($request->date);
+        } else {
+            // Otherwise, get all bookings
+            $bookings = $this->bookingService->getAllBookings();
+        }
 
         return response()->json($bookings);
     }
