@@ -2,21 +2,35 @@
 
 namespace App\Services;
 
-use App\Models\Service;
-use App\Models\WorkingHour;
-use App\Models\Booking;
+use App\Repositories\ServiceRepositoryInterface;
+use App\Repositories\WorkingHourRepositoryInterface;
+use App\Repositories\BookingRepositoryInterface;
 use Carbon\Carbon;
 
 class SlotGeneratorService
 {
+    protected $serviceRepository;
+    protected $workingHourRepository;
+    protected $bookingRepository;
+
+    public function __construct(
+        ServiceRepositoryInterface $serviceRepository,
+        WorkingHourRepositoryInterface $workingHourRepository,
+        BookingRepositoryInterface $bookingRepository
+    ) {
+        $this->serviceRepository = $serviceRepository;
+        $this->workingHourRepository = $workingHourRepository;
+        $this->bookingRepository = $bookingRepository;
+    }
+
     public function getAvailableSlots(string $date, int $serviceId): array
     {
-        $service = \App\Models\Service::findOrFail($serviceId);
+        $service = $this->serviceRepository->findOrFail($serviceId);
         // Use format('w') to get 0=Sunday, 1=Monday, etc. (matches database schema)
         $dayOfWeek = (int)Carbon::parse($date)->format('w');
 
         // Check if working day
-        $workingHour = WorkingHour::getForDay($dayOfWeek);
+        $workingHour = $this->workingHourRepository->getForDay($dayOfWeek);
 
         if (!$workingHour) {
             return [];
@@ -46,9 +60,7 @@ class SlotGeneratorService
         }
 
         // Get existing bookings
-        $bookings = Booking::where('booking_date', $date)
-            ->where('status', '!=', 'cancelled')
-            ->get();
+        $bookings = $this->bookingRepository->getByDateExcludingCancelled($date);
 
         // Filter available slots
         return $this->filterAvailableSlots($allSlots, $bookings);
@@ -129,7 +141,7 @@ class SlotGeneratorService
         $dayOfWeek = (int)Carbon::parse($date)->format('w');
 
         // Check if working day
-        $workingHour = WorkingHour::getForDay($dayOfWeek);
+        $workingHour = $this->workingHourRepository->getForDay($dayOfWeek);
 
         return $workingHour !== null;
     }
@@ -141,9 +153,7 @@ class SlotGeneratorService
      */
     public function getActiveWorkingDays(): array
     {
-        return WorkingHour::where('is_active', true)
-            ->pluck('day_of_week')
-            ->toArray();
+        return $this->workingHourRepository->getActiveDays();
     }
 
     /**

@@ -2,12 +2,19 @@
 
 namespace App\Services;
 
-use App\Models\Booking;
+use App\Repositories\BookingRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BookingService
 {
+    protected $bookingRepository;
+
+    public function __construct(BookingRepositoryInterface $bookingRepository)
+    {
+        $this->bookingRepository = $bookingRepository;
+    }
+
     /**
      * Check if a booking conflicts with existing bookings
      *
@@ -18,27 +25,17 @@ class BookingService
      */
     public function hasConflict(string $date, string $startTime, string $endTime): bool
     {
-        return Booking::where('booking_date', $date)
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($query) use ($startTime, $endTime) {
-                $query->whereBetween('start_time', [$startTime, $endTime])
-                    ->orWhereBetween('end_time', [$startTime, $endTime])
-                    ->orWhere(function ($q) use ($startTime, $endTime) {
-                        $q->where('start_time', '<=', $startTime)
-                            ->where('end_time', '>=', $endTime);
-                    });
-            })
-            ->exists();
+        return $this->bookingRepository->hasConflict($date, $startTime, $endTime);
     }
 
     /**
      * Create a new booking with database transaction
      *
      * @param array $data
-     * @return Booking
+     * @return \App\Models\Booking
      * @throws \Exception
      */
-    public function createBooking(array $data): Booking
+    public function createBooking(array $data)
     {
         return DB::transaction(function () use ($data) {
             // Check for conflicts before creating
@@ -51,7 +48,7 @@ class BookingService
             }
 
             // Create the booking
-            $booking = Booking::create($data);
+            $booking = $this->bookingRepository->create($data);
 
             Log::info('Booking created', [
                 'booking_id' => $booking->id,
@@ -72,10 +69,7 @@ class BookingService
      */
     public function getBookingsForDate(string $date)
     {
-        return Booking::where('booking_date', $date)
-            ->with('service')
-            ->orderBy('start_time')
-            ->get();
+        return $this->bookingRepository->getByDate($date);
     }
 
     /**
@@ -85,9 +79,6 @@ class BookingService
      */
     public function getAllBookings()
     {
-        return Booking::with('service')
-            ->orderBy('booking_date')
-            ->orderBy('start_time')
-            ->get();
+        return $this->bookingRepository->getAll();
     }
 }

@@ -2,16 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\WorkingHour;
 use App\Repositories\WorkingDayRepository;
+use App\Repositories\WorkingHourRepositoryInterface;
 
 class WorkingHourService
 {
     protected $workingDayRepository;
+    protected $workingHourRepository;
 
-    public function __construct(WorkingDayRepository $workingDayRepository)
-    {
+    public function __construct(
+        WorkingDayRepository $workingDayRepository,
+        WorkingHourRepositoryInterface $workingHourRepository
+    ) {
         $this->workingDayRepository = $workingDayRepository;
+        $this->workingHourRepository = $workingHourRepository;
     }
 
     /**
@@ -22,7 +26,7 @@ class WorkingHourService
      */
     public function getAllWithDayNames(?string $locale = null): array
     {
-        $workingHours = WorkingHour::orderBy('day_of_week')->get();
+        $workingHours = $this->workingHourRepository->getAllOrderedByDay();
 
         return $workingHours->map(function ($workingHour) use ($locale) {
             return [
