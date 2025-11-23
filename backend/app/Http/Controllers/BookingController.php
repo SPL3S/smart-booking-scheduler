@@ -33,6 +33,13 @@ class BookingController extends Controller
         return response()->json(['slots' => $slots]);
     }
 
+    public function getWorkingDays()
+    {
+        $workingDays = $this->slotGenerator->getActiveWorkingDays();
+
+        return response()->json(['working_days' => $workingDays]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
