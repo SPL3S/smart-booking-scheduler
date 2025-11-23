@@ -13,3 +13,4 @@ frontend/.env
 frontend/.env.local
 .vscode/settings.json
 backend/HIGH_PRIORITY_DI_IMPROVEMENTS.md
+backend/MEDIUM_PRIORITY_DI_IMPROVEMENTS.md
