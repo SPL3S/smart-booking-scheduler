@@ -12,7 +12,8 @@ class WorkingDayRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new WorkingDayRepository();
+        // Resolve from container to get dependencies injected automatically
+        $this->repository = $this->app->make(WorkingDayRepository::class);
     }
 
     /** @test */

@@ -175,13 +175,13 @@ class BreakPeriodTest extends TestCase
     /** @test */
     public function it_excludes_break_periods_from_available_slots()
     {
-        // Get today's date and day of week
-        $today = Carbon::today();
-        $dayOfWeek = (int)$today->format('w');
-        $todayDate = $today->format('Y-m-d');
+        // Use a future date to avoid past slot filtering
+        $futureDate = Carbon::tomorrow();
+        $dayOfWeek = (int)$futureDate->format('w');
+        $futureDateString = $futureDate->format('Y-m-d');
 
-        // Create or update working hour for today
-        $workingHourForToday = WorkingHour::updateOrCreate(
+        // Create or update working hour for the future date
+        $workingHourForFuture = WorkingHour::updateOrCreate(
             ['day_of_week' => $dayOfWeek],
             [
                 'start_time' => '09:00',
@@ -192,15 +192,15 @@ class BreakPeriodTest extends TestCase
 
         // Create break period 12:00-13:00
         BreakPeriod::create([
-            'working_hour_id' => $workingHourForToday->id,
+            'working_hour_id' => $workingHourForFuture->id,
             'start_time' => '12:00',
             'end_time' => '13:00',
             'name' => 'Lunch',
             'is_active' => true,
         ]);
 
-        // Get available slots for today
-        $response = $this->getJson("/api/available-slots?date={$todayDate}&service_id={$this->service->id}");
+        // Get available slots for the future date
+        $response = $this->getJson("/api/available-slots?date={$futureDateString}&service_id={$this->service->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure(['slots']);
