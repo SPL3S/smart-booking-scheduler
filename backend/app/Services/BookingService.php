@@ -25,7 +25,7 @@ class BookingService
                     ->orWhereBetween('end_time', [$startTime, $endTime])
                     ->orWhere(function ($q) use ($startTime, $endTime) {
                         $q->where('start_time', '<=', $startTime)
-                          ->where('end_time', '>=', $endTime);
+                            ->where('end_time', '>=', $endTime);
                     });
             })
             ->exists();
@@ -91,4 +91,3 @@ class BookingService
             ->get();
     }
 }
-
