@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkingHour extends Model
 {
@@ -25,9 +26,8 @@ class WorkingHour extends Model
             ->first();
     }
 
-    public function getDayNameAttribute(): string
+    public function breakPeriods(): HasMany
     {
-        $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return $days[$this->day_of_week] ?? 'Unknown';
+        return $this->hasMany(BreakPeriod::class);
     }
 }
