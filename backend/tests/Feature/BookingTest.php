@@ -31,7 +31,7 @@ class BookingTest extends TestCase
         $this->futureDate = Carbon::tomorrow()->format('Y-m-d');
 
         // Create working hours for the test day
-        $dayOfWeek = Carbon::parse($this->futureDate)->dayOfWeek;
+        $dayOfWeek = (int)Carbon::parse($this->futureDate)->format('w');
         WorkingHour::create([
             'day_of_week' => $dayOfWeek,
             'start_time' => '09:00',
@@ -223,7 +223,7 @@ class BookingTest extends TestCase
         $dayAfter = $tomorrowDate->copy()->addDay()->format('Y-m-d');
 
         // Create working hours for the day after tomorrow
-        $dayOfWeek = Carbon::parse($dayAfter)->dayOfWeek;
+        $dayOfWeek = (int)Carbon::parse($dayAfter)->format('w');
         WorkingHour::create([
             'day_of_week' => $dayOfWeek,
             'start_time' => '09:00',
@@ -318,7 +318,7 @@ class BookingTest extends TestCase
     public function it_returns_empty_slots_when_no_working_hours_exist()
     {
         // Delete working hours for the test day
-        $dayOfWeek = Carbon::parse($this->futureDate)->dayOfWeek;
+        $dayOfWeek = (int)Carbon::parse($this->futureDate)->format('w');
         WorkingHour::where('day_of_week', $dayOfWeek)->delete();
 
         $response = $this->getJson("/api/available-slots?date={$this->futureDate}&service_id={$this->service->id}");
@@ -357,7 +357,7 @@ class BookingTest extends TestCase
     {
         // Set working hours for today
         $today = Carbon::today()->format('Y-m-d');
-        $dayOfWeek = Carbon::parse($today)->dayOfWeek;
+        $dayOfWeek = (int)Carbon::parse($today)->format('w');
         WorkingHour::updateOrCreate(
             ['day_of_week' => $dayOfWeek],
             [
