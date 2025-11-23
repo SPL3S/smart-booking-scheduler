@@ -17,11 +17,11 @@ class WorkingHourController extends Controller
 
     public function index(Request $request)
     {
-        $locale = $request->query('locale');
+        $locale = $request->query('locale') ?? $request->getLocale();
         $workingHours = $this->workingHourService->getAllWithDayNames($locale);
 
         return response()->json([
-            'locale' => $locale ?? app()->getLocale(),
+            'locale' => $locale,
             'working_hours' => $workingHours
         ]);
     }
@@ -35,7 +35,7 @@ class WorkingHourController extends Controller
             'is_active' => 'sometimes|boolean'
         ]);
 
-        $workingHour = WorkingHour::create($validated);
+        $workingHour = $this->workingHourService->create($validated);
 
         return response()->json($workingHour, 201);
     }
@@ -60,14 +60,14 @@ class WorkingHourController extends Controller
             'is_active' => 'sometimes|boolean'
         ]);
 
-        $workingHour->update($validated);
+        $workingHour = $this->workingHourService->update($workingHour, $validated);
 
         return response()->json($workingHour);
     }
 
     public function destroy(WorkingHour $workingHour)
     {
-        $workingHour->delete();
+        $this->workingHourService->delete($workingHour);
         return response()->json(['message' => 'Working hour deleted']);
     }
 }

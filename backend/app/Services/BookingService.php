@@ -3,16 +3,23 @@
 namespace App\Services;
 
 use App\Repositories\BookingRepositoryInterface;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Connection;
+use Psr\Log\LoggerInterface;
 
 class BookingService
 {
     protected $bookingRepository;
+    protected $db;
+    protected $logger;
 
-    public function __construct(BookingRepositoryInterface $bookingRepository)
-    {
+    public function __construct(
+        BookingRepositoryInterface $bookingRepository,
+        Connection $db,
+        LoggerInterface $logger
+    ) {
         $this->bookingRepository = $bookingRepository;
+        $this->db = $db;
+        $this->logger = $logger;
     }
 
     /**
@@ -37,7 +44,7 @@ class BookingService
      */
     public function createBooking(array $data)
     {
-        return DB::transaction(function () use ($data) {
+        return $this->db->transaction(function () use ($data) {
             // Check for conflicts before creating
             if ($this->hasConflict(
                 $data['booking_date'],
@@ -50,7 +57,7 @@ class BookingService
             // Create the booking
             $booking = $this->bookingRepository->create($data);
 
-            Log::info('Booking created', [
+            $this->logger->info('Booking created', [
                 'booking_id' => $booking->id,
                 'service_id' => $booking->service_id,
                 'date' => $booking->booking_date,
@@ -80,5 +87,63 @@ class BookingService
     public function getAllBookings()
     {
         return $this->bookingRepository->getAll();
+    }
+
+    /**
+     * Get bookings with filters (for admin)
+     *
+     * @param array $filters
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getBookingsWithFilters(array $filters = [])
+    {
+        $query = \App\Models\Booking::with('service');
+
+        if (isset($filters['date'])) {
+            $query->where('booking_date', $filters['date']);
+        }
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['date_from'])) {
+            $query->where('booking_date', '>=', $filters['date_from']);
+        }
+
+        if (isset($filters['date_to'])) {
+            $query->where('booking_date', '<=', $filters['date_to']);
+        }
+
+        return $query->orderBy('booking_date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->get();
+    }
+
+    /**
+     * Update booking status
+     *
+     * @param int $id
+     * @param string $status
+     * @return \App\Models\Booking
+     */
+    public function updateStatus(int $id, string $status)
+    {
+        $booking = \App\Models\Booking::findOrFail($id);
+        $booking->status = $status;
+        $booking->save();
+        return $booking->load('service');
+    }
+
+    /**
+     * Delete a booking
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function delete(int $id): bool
+    {
+        $booking = \App\Models\Booking::findOrFail($id);
+        return $booking->delete();
     }
 }

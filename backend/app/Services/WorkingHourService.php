@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\WorkingDayRepository;
 use App\Repositories\WorkingHourRepositoryInterface;
+use App\Models\WorkingHour;
 
 class WorkingHourService
 {
@@ -39,5 +40,40 @@ class WorkingHourService
                 'is_active' => $workingHour->is_active,
             ];
         })->toArray();
+    }
+
+    /**
+     * Create a working hour
+     *
+     * @param array $data
+     * @return WorkingHour
+     */
+    public function create(array $data): WorkingHour
+    {
+        return WorkingHour::create($data);
+    }
+
+    /**
+     * Update a working hour
+     *
+     * @param WorkingHour $workingHour
+     * @param array $data
+     * @return WorkingHour
+     */
+    public function update(WorkingHour $workingHour, array $data): WorkingHour
+    {
+        $workingHour->update($data);
+        return $workingHour->fresh();
+    }
+
+    /**
+     * Delete a working hour
+     *
+     * @param WorkingHour $workingHour
+     * @return bool
+     */
+    public function delete(WorkingHour $workingHour): bool
+    {
+        return $workingHour->delete();
     }
 }

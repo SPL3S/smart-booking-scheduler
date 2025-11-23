@@ -2,10 +2,20 @@
 
 namespace App\Repositories;
 
-use Illuminate\Support\Facades\Lang;
+use Illuminate\Contracts\Translation\Translator;
+use Illuminate\Contracts\Foundation\Application;
 
 class WorkingDayRepository
 {
+    protected $translator;
+    protected $app;
+
+    public function __construct(Translator $translator, Application $app)
+    {
+        $this->translator = $translator;
+        $this->app = $app;
+    }
+
     /**
      * Get the full day name for a given day index.
      *
@@ -19,15 +29,14 @@ class WorkingDayRepository
             $dayIndex = 0;
         }
 
-        $locale = $locale ?? app()->getLocale();
+        $locale = $locale ?? $this->app->getLocale();
         $key = "days.weekdays.{$dayIndex}";
 
-        // Use Lang::get with locale parameter for better reliability
-        $translation = Lang::get($key, [], $locale);
+        $translation = $this->translator->get($key, [], $locale);
 
         // Fallback to default locale if translation not found
         if ($translation === $key) {
-            $translation = Lang::get($key, [], app()->getFallbackLocale());
+            $translation = $this->translator->get($key, [], $this->app->getFallbackLocale());
         }
 
         return $translation;
@@ -46,15 +55,14 @@ class WorkingDayRepository
             $dayIndex = 0;
         }
 
-        $locale = $locale ?? app()->getLocale();
+        $locale = $locale ?? $this->app->getLocale();
         $key = "days.weekdays_short.{$dayIndex}";
 
-        // Use Lang::get with locale parameter for better reliability
-        $translation = Lang::get($key, [], $locale);
+        $translation = $this->translator->get($key, [], $locale);
 
         // Fallback to default locale if translation not found
         if ($translation === $key) {
-            $translation = Lang::get($key, [], app()->getFallbackLocale());
+            $translation = $this->translator->get($key, [], $this->app->getFallbackLocale());
         }
 
         return $translation;
@@ -69,7 +77,7 @@ class WorkingDayRepository
     public function getAllDayNames(?string $locale = null): array
     {
         $days = [];
-        $currentLocale = $locale ?? app()->getLocale();
+        $currentLocale = $locale ?? $this->app->getLocale();
 
         for ($i = 0; $i <= 6; $i++) {
             $days[$i] = $this->getDayName($i, $currentLocale);
@@ -87,7 +95,7 @@ class WorkingDayRepository
     public function getAllDayNamesShort(?string $locale = null): array
     {
         $days = [];
-        $currentLocale = $locale ?? app()->getLocale();
+        $currentLocale = $locale ?? $this->app->getLocale();
 
         for ($i = 0; $i <= 6; $i++) {
             $days[$i] = $this->getDayNameShort($i, $currentLocale);

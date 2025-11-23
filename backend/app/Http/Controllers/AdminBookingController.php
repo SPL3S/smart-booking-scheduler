@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -24,43 +23,29 @@ class AdminBookingController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Booking::with('service');
+        $filters = [];
 
-        // Filter by date if provided
         if ($request->has('date')) {
-            $request->validate([
-                'date' => 'required|date'
-            ]);
-            $query->where('booking_date', $request->date);
+            $request->validate(['date' => 'required|date']);
+            $filters['date'] = $request->date;
         }
 
-        // Filter by status if provided
         if ($request->has('status')) {
-            $request->validate([
-                'status' => 'required|in:pending,confirmed,cancelled'
-            ]);
-            $query->where('status', $request->status);
+            $request->validate(['status' => 'required|in:pending,confirmed,cancelled']);
+            $filters['status'] = $request->status;
         }
 
-        // Filter by date range if provided
         if ($request->has('date_from')) {
-            $request->validate([
-                'date_from' => 'required|date'
-            ]);
-            $query->where('booking_date', '>=', $request->date_from);
+            $request->validate(['date_from' => 'required|date']);
+            $filters['date_from'] = $request->date_from;
         }
 
         if ($request->has('date_to')) {
-            $request->validate([
-                'date_to' => 'required|date'
-            ]);
-            $query->where('booking_date', '<=', $request->date_to);
+            $request->validate(['date_to' => 'required|date']);
+            $filters['date_to'] = $request->date_to;
         }
 
-        // Order by closest date and time (upcoming bookings first)
-        $bookings = $query->orderBy('booking_date', 'asc')
-            ->orderBy('start_time', 'asc')
-            ->get();
+        $bookings = $this->bookingService->getBookingsWithFilters($filters);
 
         return response()->json([
             'bookings' => $bookings
@@ -80,13 +65,11 @@ class AdminBookingController extends Controller
             'status' => 'required|in:pending,confirmed,cancelled'
         ]);
 
-        $booking = Booking::findOrFail($id);
-        $booking->status = $validated['status'];
-        $booking->save();
+        $booking = $this->bookingService->updateStatus($id, $validated['status']);
 
         return response()->json([
             'message' => 'Booking status updated successfully',
-            'booking' => $booking->load('service')
+            'booking' => $booking
         ]);
     }
 
@@ -98,12 +81,10 @@ class AdminBookingController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $booking = Booking::findOrFail($id);
-        $booking->delete();
+        $this->bookingService->delete($id);
 
         return response()->json([
             'message' => 'Booking deleted successfully'
         ]);
     }
 }
-

@@ -3,13 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Service;
+use App\Services\ServiceService;
 use Illuminate\Http\Request;
 
 class ServiceController extends Controller
 {
+    protected $serviceService;
+
+    public function __construct(ServiceService $serviceService)
+    {
+        $this->serviceService = $serviceService;
+    }
+
     public function index()
     {
-        $services = Service::all();
+        $services = $this->serviceService->getAll();
         return response()->json($services);
     }
 
@@ -21,7 +29,7 @@ class ServiceController extends Controller
             'price' => 'required|numeric|min:0'
         ]);
 
-        $service = Service::create($validated);
+        $service = $this->serviceService->create($validated);
 
         return response()->json($service, 201);
     }
@@ -39,14 +47,14 @@ class ServiceController extends Controller
             'price' => 'sometimes|numeric|min:0'
         ]);
 
-        $service->update($validated);
+        $service = $this->serviceService->update($service, $validated);
 
         return response()->json($service);
     }
 
     public function destroy(Service $service)
     {
-        $service->delete();
+        $this->serviceService->delete($service);
         return response()->json(['message' => 'Service deleted']);
     }
 }
