@@ -11,8 +11,11 @@ const loading = ref(false)
 const loadingSlots = ref(false)
 const message = ref('')
 const messageType = ref('success')
+const workingDays = ref([]) // Array of day_of_week values (0=Sunday, 1=Monday, etc.)
 
-const today = new Date().toISOString().split('T')[0]
+// Get today's date in local timezone (not UTC)
+const todayDateObj = new Date()
+const today = `${todayDateObj.getFullYear()}-${String(todayDateObj.getMonth() + 1).padStart(2, '0')}-${String(todayDateObj.getDate()).padStart(2, '0')}`
 
 const currentMonth = ref(new Date().getMonth())
 const currentYear = ref(new Date().getFullYear())
@@ -31,29 +34,54 @@ const calendarDays = computed(() => {
   const todayDate = new Date()
   todayDate.setHours(0, 0, 0, 0)
   
+  // Helper function to check if a date has working hours
+  const hasWorkingHours = (date) => {
+    if (workingDays.value.length === 0) return false
+    const dayOfWeek = date.getDay() // 0=Sunday, 1=Monday, etc.
+    return workingDays.value.includes(dayOfWeek)
+  }
+  
+  // Helper function to format date as YYYY-MM-DD in local timezone (not UTC)
+  const formatDateLocal = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
   // Previous month days
   const firstDayOfWeek = firstDay.getDay()
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     const day = prevLastDay.getDate() - i
     const date = new Date(currentYear.value, currentMonth.value - 1, day)
+    const isPast = date < todayDate
+    const hasHours = hasWorkingHours(date)
+    const fullDate = formatDateLocal(date)
     days.push({
       day,
       date: date.toISOString(),
-      fullDate: date.toISOString().split('T')[0],
+      fullDate: fullDate,
       isCurrentMonth: false,
-      isPast: date < todayDate
+      isPast,
+      hasWorkingHours: hasHours,
+      isDisabled: isPast || !hasHours
     })
   }
   
   // Current month days
   for (let day = 1; day <= lastDay.getDate(); day++) {
     const date = new Date(currentYear.value, currentMonth.value, day)
+    const isPast = date < todayDate
+    const hasHours = hasWorkingHours(date)
+    const fullDate = formatDateLocal(date)
     days.push({
       day,
       date: date.toISOString(),
-      fullDate: date.toISOString().split('T')[0],
+      fullDate: fullDate,
       isCurrentMonth: true,
-      isPast: date < todayDate
+      isPast,
+      hasWorkingHours: hasHours,
+      isDisabled: isPast || !hasHours
     })
   }
   
@@ -61,12 +89,17 @@ const calendarDays = computed(() => {
   const remainingDays = 42 - days.length
   for (let day = 1; day <= remainingDays; day++) {
     const date = new Date(currentYear.value, currentMonth.value + 1, day)
+    const isPast = date < todayDate
+    const hasHours = hasWorkingHours(date)
+    const fullDate = formatDateLocal(date)
     days.push({
       day,
       date: date.toISOString(),
-      fullDate: date.toISOString().split('T')[0],
+      fullDate: fullDate,
       isCurrentMonth: false,
-      isPast: date < todayDate
+      isPast,
+      hasWorkingHours: hasHours,
+      isDisabled: isPast || !hasHours
     })
   }
   
@@ -85,12 +118,13 @@ function changeMonth(delta) {
 }
 
 function selectDate(day) {
-  if (!day.isCurrentMonth || day.isPast) return
+  if (day.isDisabled || !day.isCurrentMonth) return
   selectedDate.value = day.fullDate
 }
 
 onMounted(async () => {
   await fetchServices()
+  await fetchWorkingDays()
 })
 
 async function fetchServices() {
@@ -99,6 +133,17 @@ async function fetchServices() {
     services.value = await response.json()
   } catch (error) {
     showMessage('Failed to load services', 'danger')
+  }
+}
+
+async function fetchWorkingDays() {
+  try {
+    const response = await fetch('/api/working-days')
+    const data = await response.json()
+    workingDays.value = data.working_days || []
+  } catch (error) {
+    console.error('Failed to load working days:', error)
+    workingDays.value = []
   }
 }
 
@@ -120,6 +165,12 @@ async function fetchAvailableSlots() {
     const response = await fetch(
       `/api/available-slots?date=${selectedDate.value}&service_id=${selectedService.value}`
     )
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || 'Failed to load time slots')
+    }
+    
     const data = await response.json()
     availableSlots.value = data.slots
     
@@ -127,7 +178,8 @@ async function fetchAvailableSlots() {
       showMessage('No available slots for this date', 'info')
     }
   } catch (error) {
-    showMessage('Failed to load time slots', 'danger')
+    showMessage(error.message || 'Failed to load time slots', 'danger')
+    availableSlots.value = []
   } finally {
     loadingSlots.value = false
   }
@@ -236,11 +288,11 @@ function selectSlot(slot) {
                       v-for="day in calendarDays"
                       :key="day.date"
                       @click="selectDate(day)"
-                      :disabled="!day.isCurrentMonth || day.isPast"
+                      :disabled="day.isDisabled || !day.isCurrentMonth"
                       :class="[
                         'calendar-day',
                         { 'selected': selectedDate === day.fullDate },
-                        { 'disabled': !day.isCurrentMonth || day.isPast }
+                        { 'disabled': day.isDisabled || !day.isCurrentMonth }
                       ]"
                       type="button"
                     >
