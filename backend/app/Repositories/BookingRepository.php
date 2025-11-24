@@ -11,8 +11,15 @@ class BookingRepository implements BookingRepositoryInterface
         return Booking::where('booking_date', $date)
             ->where('status', '!=', 'cancelled')
             ->where(function ($query) use ($startTime, $endTime) {
-                $query->whereBetween('start_time', [$startTime, $endTime])
-                    ->orWhereBetween('end_time', [$startTime, $endTime])
+                // Check if existing booking starts during new booking (excluding exact end boundary)
+                $query->where('start_time', '>=', $startTime)
+                    ->where('start_time', '<', $endTime)
+                    // Check if existing booking ends during new booking (excluding exact start boundary)
+                    ->orWhere(function ($q) use ($startTime, $endTime) {
+                        $q->where('end_time', '>', $startTime)
+                            ->where('end_time', '<=', $endTime);
+                    })
+                    // Check if existing booking fully contains new booking
                     ->orWhere(function ($q) use ($startTime, $endTime) {
                         $q->where('start_time', '<=', $startTime)
                             ->where('end_time', '>=', $endTime);
