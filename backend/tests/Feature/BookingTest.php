@@ -70,9 +70,70 @@ class BookingTest extends TestCase
             'end_time' => '11:00',
         ]);
 
-        // Should fail due to unique constraint or conflict detection
-        $response->assertStatus(422);
+        // Should fail due to application-level conflict detection (not database constraint)
+        $response->assertStatus(422)
+            ->assertJson([
+                'message' => 'Booking conflict detected. The selected time slot is already booked.'
+            ]);
         $this->assertDatabaseCount('bookings', 1);
+    }
+
+    /** @test */
+    public function it_prevents_booking_with_same_start_time_but_different_end_time()
+    {
+        // Create first booking: 10:00-11:00
+        Booking::create([
+            'service_id' => $this->service->id,
+            'client_email' => 'client1@example.com',
+            'booking_date' => $this->futureDate,
+            'start_time' => '10:00',
+            'end_time' => '11:00',
+            'status' => 'confirmed',
+        ]);
+
+        // Try to create a booking with same start time but different end time: 10:00-12:00
+        $response = $this->postJson('/api/bookings', [
+            'service_id' => $this->service->id,
+            'client_email' => 'client2@example.com',
+            'booking_date' => $this->futureDate,
+            'start_time' => '10:00',
+            'end_time' => '12:00',
+        ]);
+
+        // Should fail due to application-level conflict detection (overlapping times)
+        $response->assertStatus(422)
+            ->assertJson([
+                'message' => 'Booking conflict detected. The selected time slot is already booked.'
+            ]);
+        $this->assertDatabaseCount('bookings', 1);
+    }
+
+    /** @test */
+    public function it_prevents_booking_when_start_time_matches_existing_booking_end_time()
+    {
+        // Create first booking: 10:00-11:00
+        Booking::create([
+            'service_id' => $this->service->id,
+            'client_email' => 'client1@example.com',
+            'booking_date' => $this->futureDate,
+            'start_time' => '10:00',
+            'end_time' => '11:00',
+            'status' => 'confirmed',
+        ]);
+
+        // Try to create a booking that starts exactly when previous ends: 11:00-12:00
+        // This should be allowed (no overlap)
+        $response = $this->postJson('/api/bookings', [
+            'service_id' => $this->service->id,
+            'client_email' => 'client2@example.com',
+            'booking_date' => $this->futureDate,
+            'start_time' => '11:00',
+            'end_time' => '12:00',
+        ]);
+
+        // Should succeed - no overlap when one ends exactly when the other starts
+        $response->assertStatus(201);
+        $this->assertDatabaseCount('bookings', 2);
     }
 
     /** @test */
