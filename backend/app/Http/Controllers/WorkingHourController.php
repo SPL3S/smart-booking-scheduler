@@ -68,6 +68,6 @@ class WorkingHourController extends Controller
     public function destroy(WorkingHour $workingHour)
     {
         $this->workingHourService->delete($workingHour);
-        return response()->json(['message' => 'Working hour deleted']);
+        return response()->noContent();
     }
 }

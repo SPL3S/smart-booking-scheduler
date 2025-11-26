@@ -56,6 +56,9 @@ async function fetchWorkingHours() {
   loading.value = true
   try {
     const response = await fetch('/api/admin/working-hours')
+    if (!response.ok) {
+      throw new Error('Failed to load working hours')
+    }
     const data = await response.json()
     // Handle the response structure: { locale: 'en', working_hours: [...] }
     workingHours.value = data.working_hours || data || []
@@ -133,11 +136,12 @@ async function addWorkingDay() {
       body: JSON.stringify(newDay.value)
     })
     
-    const data = await response.json()
-    
     if (!response.ok) {
-      throw new Error(data.message || 'Failed to add working day')
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || 'Failed to add working day')
     }
+    
+    const data = await response.json()
     
     workingHours.value.push(data)
     workingHours.value.sort((a, b) => a.day_of_week - b.day_of_week)
@@ -266,11 +270,10 @@ async function createBreakPeriod(workingHourId) {
       })
     })
     
-    const data = await response.json()
-    
     if (!response.ok) {
-      const errorMessage = data.message || 'Failed to create break period'
-      const errors = data.errors || {}
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.message || 'Failed to create break period'
+      const errors = errorData.errors || {}
       let errorText = errorMessage
       
       if (Object.keys(errors).length > 0) {
@@ -279,6 +282,8 @@ async function createBreakPeriod(workingHourId) {
       
       throw new Error(errorText)
     }
+    
+    const data = await response.json()
     
     // Add to local state
     if (!breakPeriods.value[workingHourId]) {
@@ -344,11 +349,10 @@ async function updateBreakPeriod() {
       })
     })
     
-    const data = await response.json()
-    
     if (!response.ok) {
-      const errorMessage = data.message || 'Failed to update break period'
-      const errors = data.errors || {}
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.message || 'Failed to update break period'
+      const errors = errorData.errors || {}
       let errorText = errorMessage
       
       if (Object.keys(errors).length > 0) {
@@ -357,6 +361,8 @@ async function updateBreakPeriod() {
       
       throw new Error(errorText)
     }
+    
+    const data = await response.json()
     
     // Update local state
     const workingHourId = editingBreakPeriod.value.workingHourId
@@ -457,11 +463,10 @@ async function createService() {
       })
     })
     
-    const data = await response.json()
-    
     if (!response.ok) {
-      const errorMessage = data.message || 'Failed to create service'
-      const errors = data.errors || {}
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.message || 'Failed to create service'
+      const errors = errorData.errors || {}
       let errorText = errorMessage
       
       if (Object.keys(errors).length > 0) {
@@ -470,6 +475,8 @@ async function createService() {
       
       throw new Error(errorText)
     }
+    
+    const data = await response.json()
     
     services.value.push(data)
     services.value.sort((a, b) => a.name.localeCompare(b.name))
@@ -532,11 +539,10 @@ async function updateService() {
       })
     })
     
-    const data = await response.json()
-    
     if (!response.ok) {
-      const errorMessage = data.message || 'Failed to update service'
-      const errors = data.errors || {}
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.message || 'Failed to update service'
+      const errors = errorData.errors || {}
       let errorText = errorMessage
       
       if (Object.keys(errors).length > 0) {
@@ -545,6 +551,8 @@ async function updateService() {
       
       throw new Error(errorText)
     }
+    
+    const data = await response.json()
     
     // Update local state
     const index = services.value.findIndex(s => s.id === editingService.value.id)

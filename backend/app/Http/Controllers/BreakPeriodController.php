@@ -44,18 +44,9 @@ class BreakPeriodController extends Controller
             'name' => 'nullable|string|max:255',
         ]);
 
-        try {
-            $breakPeriod = $this->breakPeriodService->create($workingHour, $validated);
-            return response()->json($breakPeriod, 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-                'errors' => [
-                    'start_time' => ['Break period must start after or at working hour start time'],
-                    'end_time' => ['Break period must end before or at working hour end time']
-                ]
-            ], 422);
-        }
+        $breakPeriod = $this->breakPeriodService->create($workingHour, $validated);
+        
+        return response()->json($breakPeriod, 201);
     }
 
     /**
@@ -74,18 +65,9 @@ class BreakPeriodController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        try {
-            $breakPeriod = $this->breakPeriodService->update($breakPeriod, $validated);
-            return response()->json($breakPeriod);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-                'errors' => [
-                    'start_time' => ['Break period must start after or at working hour start time'],
-                    'end_time' => ['Break period must end before or at working hour end time']
-                ]
-            ], 422);
-        }
+        $breakPeriod = $this->breakPeriodService->update($breakPeriod, $validated);
+        
+        return response()->json($breakPeriod);
     }
 
     /**
@@ -98,6 +80,6 @@ class BreakPeriodController extends Controller
     {
         $this->breakPeriodService->delete($breakPeriod);
 
-        return response()->json(null, 204);
+        return response()->noContent();
     }
 }

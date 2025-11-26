@@ -130,6 +130,9 @@ onMounted(async () => {
 async function fetchServices() {
   try {
     const response = await fetch('/api/services')
+    if (!response.ok) {
+      throw new Error('Failed to load services')
+    }
     services.value = await response.json()
   } catch (error) {
     showMessage('Failed to load services', 'danger')
@@ -139,6 +142,9 @@ async function fetchServices() {
 async function fetchWorkingDays() {
   try {
     const response = await fetch('/api/working-days')
+    if (!response.ok) {
+      throw new Error('Failed to load working days')
+    }
     const data = await response.json()
     workingDays.value = data.working_days || []
   } catch (error) {
@@ -209,12 +215,12 @@ async function bookAppointment() {
       })
     })
     
-    const data = await response.json()
-    
     if (!response.ok) {
-      throw new Error(data.message || 'Booking failed')
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || 'Booking failed')
     }
     
+    const data = await response.json()
     showMessage('Booking successful! ✅', 'success')
     
     // Reset form

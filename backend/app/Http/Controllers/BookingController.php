@@ -65,13 +65,8 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            return response()->json([
-                'message' => 'An error occurred while creating the booking. Please try again.'
-            ], 500);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => $e->getMessage()
-            ], 422);
+            // Re-throw unexpected database errors to be handled by global exception handler
+            throw $e;
         }
     }
 

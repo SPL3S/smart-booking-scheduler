@@ -55,6 +55,6 @@ class ServiceController extends Controller
     public function destroy(Service $service)
     {
         $this->serviceService->delete($service);
-        return response()->json(['message' => 'Service deleted']);
+        return response()->noContent();
     }
 }

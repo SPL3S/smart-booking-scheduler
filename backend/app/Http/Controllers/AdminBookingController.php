@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -56,16 +57,16 @@ class AdminBookingController extends Controller
      * Update booking status
      *
      * @param Request $request
-     * @param int $id
+     * @param Booking $booking
      * @return JsonResponse
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, Booking $booking): JsonResponse
     {
         $validated = $request->validate([
             'status' => 'required|in:pending,confirmed,cancelled'
         ]);
 
-        $booking = $this->bookingService->updateStatus($id, $validated['status']);
+        $booking = $this->bookingService->updateStatus($booking->id, $validated['status']);
 
         return response()->json([
             'message' => 'Booking status updated successfully',
@@ -76,15 +77,13 @@ class AdminBookingController extends Controller
     /**
      * Delete a booking
      *
-     * @param int $id
+     * @param Booking $booking
      * @return JsonResponse
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(Booking $booking): JsonResponse
     {
-        $this->bookingService->delete($id);
+        $this->bookingService->delete($booking->id);
 
-        return response()->json([
-            'message' => 'Booking deleted successfully'
-        ]);
+        return response()->noContent();
     }
 }

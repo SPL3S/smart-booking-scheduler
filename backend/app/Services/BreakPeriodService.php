@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BreakPeriod;
 use App\Models\WorkingHour;
+use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
 class BreakPeriodService
@@ -27,7 +28,7 @@ class BreakPeriodService
      * @param WorkingHour $workingHour
      * @param array $data
      * @return BreakPeriod
-     * @throws \Exception
+     * @throws ValidationException
      */
     public function create(WorkingHour $workingHour, array $data): BreakPeriod
     {
@@ -37,7 +38,10 @@ class BreakPeriodService
             $data['end_time'],
             $workingHour
         )) {
-            throw new \Exception('Break period must be within working hours');
+            throw ValidationException::withMessages([
+                'start_time' => ['Break period must start after or at working hour start time'],
+                'end_time' => ['Break period must end before or at working hour end time']
+            ]);
         }
 
         return $workingHour->breakPeriods()->create($data);
@@ -49,7 +53,7 @@ class BreakPeriodService
      * @param BreakPeriod $breakPeriod
      * @param array $data
      * @return BreakPeriod
-     * @throws \Exception
+     * @throws ValidationException
      */
     public function update(BreakPeriod $breakPeriod, array $data): BreakPeriod
     {
@@ -59,7 +63,10 @@ class BreakPeriodService
             $endTime = $data['end_time'] ?? $breakPeriod->end_time;
 
             if (!$this->isBreakWithinWorkingHours($startTime, $endTime, $breakPeriod->workingHour)) {
-                throw new \Exception('Break period must be within working hours');
+                throw ValidationException::withMessages([
+                    'start_time' => ['Break period must start after or at working hour start time'],
+                    'end_time' => ['Break period must end before or at working hour end time']
+                ]);
             }
         }
 
